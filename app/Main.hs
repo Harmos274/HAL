@@ -1,7 +1,7 @@
 module Main where
 
 -- System
-import Control.Exception (handle, throw)
+import Control.Exception (handle)
 import System.Environment (getArgs)
 --
 
@@ -9,4 +9,4 @@ import Exception (exceptionHandler)
 import Arguments (parseArgs)
 
 main :: IO ()
-main = handle exceptionHandler $ getArgs >>= (print . parseArgs)
+main = handle exceptionHandler $ getArgs >>= parseArgs >>= print
