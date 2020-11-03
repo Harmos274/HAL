@@ -25,4 +25,4 @@ exceptionHandler SendHelp                 = sendHelp >> success
 exceptionHandler (ArgumentException s)    = putStrLn ("Argument exception : " ++ s) >> failure
 exceptionHandler (LexerException s)       = putStrLn ("Lexing exception : " ++ s)   >> failure
 exceptionHandler (ParserException s)      = putStrLn ("Parser exception : " ++ s)   >> failure
-exceptionHandler (EvaluationException s)  = putStrLn ("Evaluation exception" ++ s)  >> failure
+exceptionHandler (EvaluationException s)  = putStrLn ("Evaluation exception : " ++ s)  >> failure
