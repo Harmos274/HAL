@@ -1,6 +1,12 @@
 module Main where
 
-import Lib
+-- System
+import Control.Exception (handle)
+import System.Environment (getArgs)
+--
+
+import Exception (exceptionHandler)
+import Arguments (parseArgs)
 
 main :: IO ()
-main = someFunc
+main = handle exceptionHandler $ getArgs >>= parseArgs >>= print
