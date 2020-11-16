@@ -1,6 +1,6 @@
 module Lexer
     ( lexer,
-      Token(..),
+      Token (..),
     ) where
 
 import Control.Exception (throw)
@@ -8,30 +8,37 @@ import Data.Char (isSpace)
 
 import Exception (HExceptions (LexerException))
 
-data Token = OpenParen | CloseParen | Word String deriving Show
+data Token = OpenParen | CloseParen | Word String | Comment String  deriving Show
 
-lexer :: [Char] -> [Token]
-lexer []                     = []
-lexer ('(':xs)               = OpenParen : lexer xs
-lexer (')':xs)               = CloseParen : lexer xs
-lexer (chr:xs) | isSpace chr = lexer xs
-lexer ('"':xs)               = (lexer'. collectQuote) xs
-lexer list                   = (lexer'. collectWord) list
+lexer :: String -> [Token]
+lexer []                   = []
+lexer ('(':xs)             = OpenParen  : lexer xs
+lexer (')':xs)             = CloseParen : lexer xs
+lexer ('"':xs)             = collectStringLitteral xs
+lexer (';':xs)             = collectComment xs
+lexer s@(l:xs) | isSpace l = lexer xs
+               | otherwise = collectWord s
 
-lexer' :: ([Char], [Char]) -> [Token]
-lexer' (word, xs) = Word word : lexer xs
+collectComment :: String -> [Token]
+collectComment = collectComment' . break (== '\n')
 
-collectWord :: [Char] -> ([Char], [Char])
-collectWord = break isSpace
+collectComment' :: (String, String) -> [Token]
+collectComment' (com, xs) = Comment com : lexer xs
 
-collectQuote :: [Char] -> ([Char], [Char])
-collectQuote list = collectQuote' ([], list)
+collectWord :: String -> [Token]
+collectWord = collectWord' . break isSpace
 
-collectQuote' :: ([Char], [Char]) -> ([Char], [Char])
-collectQuote' (_, [])            = throw $ LexerException "Unmatched quote"
-collectQuote' (ret, '\\':chr:xs) = collectQuote' (chr:'\\':ret, xs)
-collectQuote' (ret, '"':xs)      = collectQuote'' (ret, xs)
-collectQuote' (ret, chr:xs)      = collectQuote' (chr:ret, xs)
+collectWord' :: (String, String) -> [Token]
+collectWord' (w, xs) = Word w : lexer xs
 
-collectQuote'' :: ([Char], [Char]) -> ([Char], [Char])
-collectQuote'' (lhs, rhs) = (reverse lhs, rhs)
+collectStringLitteral :: String -> [Token]
+collectStringLitteral list = collectWord' $ collectStringLitteral' ([], list)
+
+collectStringLitteral' :: (String, String) -> (String, String)
+collectStringLitteral' (_  ,          []) = throw $ LexerException  "Unmatched quote"
+collectStringLitteral' (ret, '\\':chr:xs) = collectStringLitteral'  (chr:'\\':ret, xs)
+collectStringLitteral' (ret,      '"':xs) = collectStringLitteral'' (ret, xs)
+collectStringLitteral' (ret,      chr:xs) = collectStringLitteral'  (chr:ret, xs)
+
+collectStringLitteral'' :: (String, String) -> (String, String)
+collectStringLitteral'' (lhs, rhs) = (reverse lhs, rhs)

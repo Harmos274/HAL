@@ -7,10 +7,12 @@ import System.Environment (getArgs)
 
 import Exception (exceptionHandler)
 import Arguments (parseArgs, SourceCode (..), IsInterractive (..))
+import Lexer (lexer)
 
 main :: IO ()
-main = handle exceptionHandler $ getArgs >>= parseArgs >>= halgo
+main = handle exceptionHandler $ getArgs >>= (halgo . parseArgs)
 
 halgo :: SourceCode -> IO ()
-halgo (SourceCode (IsInterractive True ) fc) = print "interractive"
+halgo SOS                                    = print SOS
+halgo (SourceCode (IsInterractive True ) fc) = mapM (fmap lexer . readFile) fc >>= print
 halgo (SourceCode (IsInterractive False) fc) = print "computable"
