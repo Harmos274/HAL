@@ -26,10 +26,17 @@ collectComment' :: (String, String) -> [Token]
 collectComment' (com, xs) = Comment com : lexer xs
 
 collectWord :: String -> [Token]
-collectWord = collectWord' . break isSpace
+collectWord = collectWord' . break isDelimiter
 
 collectWord' :: (String, String) -> [Token]
 collectWord' (w, xs) = Word w : lexer xs
+
+isDelimiter :: Char -> Bool
+isDelimiter '"' = True
+isDelimiter '(' = True
+isDelimiter ')' = True
+isDelimiter ';' = True
+isDelimiter chr = isSpace chr
 
 collectStringLitteral :: String -> [Token]
 collectStringLitteral list = collectWord' $ collectStringLitteral' ([], list)

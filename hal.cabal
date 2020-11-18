@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 68a829f3a6fa758cda10e6d6776c57a5992a1bb1d9a6ee348384dfbbe55f6f41
+-- hash: 0269318567f30cf8b20c1bc6d7509ffa03764fb16a9b9b351f413b8d59c2187f
 
 name:           hal
 version:        0.1.0.0
@@ -31,6 +31,7 @@ library
       Epitech.ReturnType
       Exception
       Lexer
+      Parser
   other-modules:
       Paths_hal
   hs-source-dirs:

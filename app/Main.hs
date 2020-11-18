@@ -8,6 +8,7 @@ import System.Environment (getArgs)
 import Exception (exceptionHandler)
 import Arguments (parseArgs, SourceCode (..), IsInterractive (..))
 import Lexer (lexer)
+import Parser (parse)
 
 main :: IO ()
 main = handle exceptionHandler $ getArgs >>= (halgo . parseArgs)
