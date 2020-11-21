@@ -1,6 +1,6 @@
 module Evaluator
     ( evaluate,
-      evaluateRepl
+      evaluateRepl,
       evaluateDefines,
       Value (..),
     ) where
@@ -61,7 +61,6 @@ evaluateRepl = evaluateRepl' []
 
 evaluateRepl' :: [Value] -> Context -> [Expression] -> (Context, [Value])
 evaluateRepl' v c []                                  = (c, reverse v)
-evaluateRepl' v c (Seq (Atom "define" : define) : xs) = evaluateRepl' v (fst $ evaluateDefine c define) xs
 evaluateRepl' v c (Seq (Atom "define" : define) : xs) = evaluateRepl' v (fst $ evaluateDefine c define) xs
 evaluateRepl' v c (expr:xs)                           = evaluateRepl' (evaluateExpr c expr : v) c xs
 
