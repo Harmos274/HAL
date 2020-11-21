@@ -6,16 +6,17 @@ module Lexer
 import Control.Exception (throw)
 import Data.Char (isSpace)
 
-import Exception (HExceptions (LexerException))
+import Exception (HExceptions (LexingException))
 
-data Token = OpenParen | CloseParen | Word String | Comment String  deriving Show
+data Token = OpenParen | CloseParen | Quote | Word String | Comment String  deriving Show
 
 lexer :: String -> [Token]
 lexer []                   = []
-lexer ('(':xs)             = OpenParen  : lexer xs
-lexer (')':xs)             = CloseParen : lexer xs
-lexer ('"':xs)             = collectStringLitteral xs
-lexer (';':xs)             = collectComment xs
+lexer ('(' :xs)            = OpenParen  : lexer xs
+lexer (')' :xs)            = CloseParen : lexer xs
+lexer ('"' :xs)            = collectStringLitteral xs
+lexer (';' :xs)            = collectComment xs
+lexer ('\'':xs)            = Quote      : lexer xs
 lexer s@(l:xs) | isSpace l = lexer xs
                | otherwise = collectWord s
 
@@ -32,20 +33,21 @@ collectWord' :: (String, String) -> [Token]
 collectWord' (w, xs) = Word w : lexer xs
 
 isDelimiter :: Char -> Bool
-isDelimiter '"' = True
-isDelimiter '(' = True
-isDelimiter ')' = True
-isDelimiter ';' = True
-isDelimiter chr = isSpace chr
+isDelimiter '"'  = True
+isDelimiter '('  = True
+isDelimiter ')'  = True
+isDelimiter ';'  = True
+isDelimiter '\'' = True
+isDelimiter chr  = isSpace chr
 
 collectStringLitteral :: String -> [Token]
-collectStringLitteral list = collectWord' $ collectStringLitteral' ([], list)
+collectStringLitteral list = collectStringLitteral'' $ collectStringLitteral' ([], list)
 
 collectStringLitteral' :: (String, String) -> (String, String)
-collectStringLitteral' (_  ,          []) = throw $ LexerException  "Unmatched quote"
+collectStringLitteral' (_  ,          []) = throw $ LexingException "Unmatched quote"
+collectStringLitteral' (ret,      '"':xs) = (reverse ret, xs)
 collectStringLitteral' (ret, '\\':chr:xs) = collectStringLitteral'  (chr:'\\':ret, xs)
-collectStringLitteral' (ret,      '"':xs) = collectStringLitteral'' (ret, xs)
 collectStringLitteral' (ret,      chr:xs) = collectStringLitteral'  (chr:ret, xs)
 
-collectStringLitteral'' :: (String, String) -> (String, String)
-collectStringLitteral'' (lhs, rhs) = (reverse lhs, rhs)
+collectStringLitteral'' :: (String, String) -> [Token]
+collectStringLitteral'' (lhs, rhs) = Quote : Word lhs : lexer rhs
