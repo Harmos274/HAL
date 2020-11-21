@@ -1,5 +1,7 @@
 module Evaluator
     ( evaluate,
+      evaluateRepl
+      evaluateDefines,
       Value (..),
     ) where
 
@@ -32,19 +34,36 @@ showList (first:xs) = '(' : show first ++ showList' xs
 showList' :: [Value] -> String
 showList' [v, Nil] = (' ': show v) ++ ")"
 showList' [v]      = (" . " ++ show v) ++ ")"
-showList' (v:xs) = (' ' : show v) ++ showList' xs
-showList' []     = ")"
+showList' (v:xs)   = (' ' : show v) ++ showList' xs
+showList' []       = ")"
+
+evaluateDefines :: [Expression] -> Context
+evaluateDefines = evaluateDefines' baseContext
+
+evaluateDefines' :: Context -> [Expression] -> Context
+evaluateDefines' c []                                  = c
+evaluateDefines' c (Seq (Atom "define" : define) : xs) = evaluateDefines' (fst $ evaluateDefine c define) xs
+evaluateDefines' c (_                            : xs) = evaluateDefines' c xs
 
 evaluate :: [Expression] -> [Value]
 evaluate = evaluate' baseContext
 
 evaluate' :: Context -> [Expression] -> [Value]
-evaluate' _ []        = []
+evaluate' _ []                                  = []
 evaluate' c (Seq (Atom "define" : define) : xs) = evaluate'' (evaluateDefine c define) xs
 evaluate' c (expr:xs)                           = evaluateExpr c expr : evaluate' c xs
 
 evaluate'' :: (Context, String) -> [Expression] -> [Value]
 evaluate'' (c, x) exprs = String x : evaluate' c exprs
+
+evaluateRepl :: Context -> [Expression] -> (Context, [Value])
+evaluateRepl = evaluateRepl' []
+
+evaluateRepl' :: [Value] -> Context -> [Expression] -> (Context, [Value])
+evaluateRepl' v c []                                  = (c, reverse v)
+evaluateRepl' v c (Seq (Atom "define" : define) : xs) = evaluateRepl' v (fst $ evaluateDefine c define) xs
+evaluateRepl' v c (Seq (Atom "define" : define) : xs) = evaluateRepl' v (fst $ evaluateDefine c define) xs
+evaluateRepl' v c (expr:xs)                           = evaluateRepl' (evaluateExpr c expr : v) c xs
 
 evaluateDefine :: Context -> [Expression] -> (Context, String)
 evaluateDefine c [Atom symbol, expr]              = (Map.insert symbol (evaluateExpr c expr) c, symbol)
