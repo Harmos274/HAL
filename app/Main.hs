@@ -17,7 +17,4 @@ main = handle exceptionHandler $ getArgs >>= (halgo . parseArgs)
 halgo :: SourceCode -> IO ()
 halgo SOS                                    = print SOS
 halgo (SourceCode (IsInterractive True ) fc) = mapM (fmap lexer . readFile) fc >>= print
-halgo (SourceCode (IsInterractive False) fc) = mapM (fmap (evaluate . parse . lexer) . readFile) fc >>= (toto . concat)
-
-toto :: [Value] -> IO ()
-toto = foldr ((>>) . print) (return ())
+halgo (SourceCode (IsInterractive False) fc) = mapM (fmap (evaluate . parse . lexer) . readFile) fc >>= mapM_ print . concat
