@@ -51,31 +51,33 @@ evaluate = evaluate' baseContext
 
 evaluate' :: Context -> [Expression] -> [Value]
 evaluate' _ []                                  = []
-evaluate' c (Seq (Atom "define" : define) : xs) = evaluate'' (evaluateDefine c define) xs
+evaluate' c (Seq (Atom "define" : define) : xs) = evaluate' (fst $ evaluateDefine c define) xs
 evaluate' c (expr:xs)                           = evaluateExpr c expr : evaluate' c xs
-
-evaluate'' :: (Context, String) -> [Expression] -> [Value]
-evaluate'' (c, x) exprs = String x : evaluate' c exprs
 
 evaluateRepl :: Context -> [Expression] -> (Context, [Value])
 evaluateRepl = evaluateRepl' []
 
 evaluateRepl' :: [Value] -> Context -> [Expression] -> (Context, [Value])
 evaluateRepl' v c []                                  = (c, reverse v)
-evaluateRepl' v c (Seq (Atom "define" : define) : xs) = evaluateRepl' v (fst $ evaluateDefine c define) xs
+evaluateRepl' v c (Seq (Atom "define" : define) : xs) = evaluateRepl'' v xs $ evaluateDefine c define
 evaluateRepl' v c (expr:xs)                           = evaluateRepl' (evaluateExpr c expr : v) c xs
+
+evaluateRepl'' :: [Value] -> [Expression] -> (Context, String) -> (Context, [Value])
+evaluateRepl'' v (expr:xs) (c, name) = evaluateRepl' (evaluateExpr c expr : String name : v) c xs
+evaluateRepl'' v []        (c, name) = (c, reverse $ String name : v)
 
 evaluateDefine :: Context -> [Expression] -> (Context, String)
 evaluateDefine c [Atom symbol, expr]              = (Map.insert symbol (evaluateExpr c expr) c, symbol)
 evaluateDefine c [Seq (Atom symbol : args), func] = (Map.insert symbol (createFunction args func) c, symbol)
+evaluateDefine _ _                                = throw $ EvaluationException "define : Invalid arguments"
 
 createFunction :: [Expression] -> Expression -> Value
 createFunction args func = Function $ Defined (map asAtom args) func
 
 evaluateExpr :: Context -> Expression -> Value
 evaluateExpr _ (Quoted expr) = evaluateQuoted expr
-evaluateExpr c (Atom atom)   = evaluateAtom c atom
 evaluateExpr c (Seq exprs)   = evaluateSeq c exprs
+evaluateExpr c (Atom a)      = evaluateAtom c a
 
 evaluateAtom :: Context -> String -> Value
 evaluateAtom c s = Map.lookup s c
@@ -108,8 +110,9 @@ evaluateQuotedSeq :: [Expression] -> [Value]
 evaluateQuotedSeq = foldr ((:) . evaluateQuoted) [Nil]
 
 invokeFunction :: Context -> Function -> [Value] -> Value
-invokeFunction _ (Builtin b) args            = b args
+invokeFunction _ (Builtin b)            args = b args
 invokeFunction c (Defined symbols func) args = evaluateExpr (functionContext c symbols args) func
+invokeFunction _ (Spe _)                _    = throw $ EvaluationException "The impossible has happened"
 
 functionContext :: Context -> [String] -> [Value] -> Context
 functionContext c (symbol:sxs) (value:vxs) = functionContext (Map.insert symbol value c) sxs vxs
@@ -142,24 +145,32 @@ add = Number . sum . map asNumber
 
 sub :: [Value] -> Value
 sub [Number n]       = Number $ -n
-sub (Number init:xs) = Number $ foldl (-) init $ map asNumber xs
+sub (Number n:xs)    = Number $ foldl (-) n $ map asNumber xs
+sub _                = throw $ EvaluationException "- : Invalid arguments"
 
 mult :: [Value] -> Value
 mult = Number . product . map asNumber
 
 division :: [Value] -> Value
 division [Number lhs, Number rhs] = Number $ quot lhs rhs
+division [_         , _]          = throw $ EvaluationException "div : Invalid arguments"
+division _                        = throw $ EvaluationException "div : Invalid number of arguments"
 
 modulo :: [Value] -> Value
-modulo [lhs, rhs] = Number $ mod (asNumber lhs) (asNumber rhs)
+modulo [Number lhs, Number rhs] = Number $ mod lhs rhs
+modulo [_         , _]          = throw $ EvaluationException "mod : Invalid arguments"
+modulo _                        = throw $ EvaluationException "mod : Invalid number of arguments"
 
 inferior :: [Value] -> Value
-inferior [lhs, rhs] = fromBool $ (<) (asNumber lhs) (asNumber rhs)
+inferior [Number lhs, Number rhs] = fromBool $ (<) lhs rhs
+inferior [_         , _]          = throw $ EvaluationException "< : Invalid arguments"
+inferior _                        = throw $ EvaluationException "< : Invalid number of arguments"
 
 cons :: [Value] -> Value
 cons [List l, Nil] = List l
 cons [lhs, List l] = List $ lhs:l
-cons [lhs, rhs] = List [lhs, rhs]
+cons [lhs, rhs]    = List [lhs, rhs]
+cons _             = throw $ EvaluationException "cons : Invalid number of arguments"
 
 car :: [Value] -> Value
 car [List (f : _)] = f
@@ -171,7 +182,8 @@ cdr [List (_ : l)]  = List l
 cdr _               = throw $ EvaluationException "cdr : Invalid arguments"
 
 cond :: Context -> [Expression] -> Value
-cond c (Seq (expr : ret : _) : xs) = cond' c (evaluateExpr c expr) ret xs
+cond c (Seq [expr, ret] : xs) = cond' c (evaluateExpr c expr) ret xs
+cond _ _                      = throw $ EvaluationException "cond : invalid branch"
 
 cond' :: Context -> Value -> Expression -> [Expression] -> Value
 cond' c (String "#f") _   xs = cond c xs
@@ -201,8 +213,9 @@ slet c (Seq defs : expr : _) = evaluateExpr (letContext c defs) expr
 slet _ _                     = throw $ EvaluationException "let : Invalid arguments"
 
 letContext :: Context -> [Expression] -> Context
-letContext c (Seq (key : value : _) : xs) = letContext (Map.insert (asAtom key) (evaluateExpr c value) c) xs
+letContext c (Seq [Atom key, value] : xs) = letContext (Map.insert key (evaluateExpr c value) c) xs
 letContext c []                           = c
+letContext _ _                            = throw $ EvaluationException "let : Invalid variable declaration"
 
 quote :: Context -> [Expression] -> Value
 quote _ [expr] = evaluateQuoted expr
