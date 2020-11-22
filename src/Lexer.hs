@@ -17,6 +17,7 @@ lexer (')' :xs)            = CloseParen : lexer xs
 lexer ('"' :xs)            = collectStringLitteral xs
 lexer (';' :xs)            = collectComment xs
 lexer ('\'':xs)            = Quote      : lexer xs
+lexer ('`' :xs)            = Quote      : lexer xs
 lexer s@(l:xs) | isSpace l = lexer xs
                | otherwise = collectWord s
 
