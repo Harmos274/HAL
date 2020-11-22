@@ -179,9 +179,9 @@ car [List (f : _)] = f
 car _              = throw $ EvaluationException "car : Invalid arguments"
 
 cdr :: [Value] -> Value
-cdr [List [_, v]]   = v
-cdr [List (_ : l)]  = List l
-cdr _               = throw $ EvaluationException "cdr : Invalid arguments"
+cdr [List [_, v]]  = v
+cdr [List (_ : l)] = List l
+cdr _              = throw $ EvaluationException "cdr : Invalid arguments"
 
 cond :: Context -> [Expression] -> Value
 cond c (Seq [expr, ret] : xs) = cond' c (evaluateExpr c expr) ret xs
@@ -192,10 +192,11 @@ cond' c (String "#f") _   xs = cond c xs
 cond' c _             ret _  = evaluateExpr c ret
 
 eq :: [Value] -> Value
-eq (Number lhs : Number rhs : _) | lhs == rhs = fromBool True
-eq (String lhs : String rhs : _) | lhs == rhs = fromBool True
-eq (Nil        : Nil        : _)              = fromBool True
-eq _                                          = fromBool False
+eq [Number lhs, Number rhs] | lhs == rhs = fromBool True
+eq [String lhs, String rhs] | lhs == rhs = fromBool True
+eq [Nil       , Nil       ]              = fromBool True
+eq [_         , _         ]              = fromBool False
+eq _                                     = throw $ EvaluationException "eq? : Invalid number of arguments"
 
 atom :: [Value] -> Value
 atom []       = throw $ EvaluationException "atom? : no argument"
@@ -203,16 +204,16 @@ atom [List _] = fromBool False
 atom _        = fromBool True
 
 lambda :: Context -> [Expression] -> Value
-lambda _ (args : func : _) = lambda' args func
-lambda _ _                 = throw $ EvaluationException "lambda : Invalid arguments"
+lambda _ [args, func] = lambda' args func
+lambda _ _            = throw $ EvaluationException "lambda : Invalid number of arguments"
 
 lambda' :: Expression -> Expression -> Value
 lambda' (Seq args) func = Function $ Defined (map asAtom args) func
 lambda' _ _             = throw $ EvaluationException "lambda : Invalid arguments"
 
 slet :: Context -> [Expression] -> Value
-slet c (Seq defs : expr : _) = evaluateExpr (letContext c defs) expr
-slet _ _                     = throw $ EvaluationException "let : Invalid arguments"
+slet c [Seq defs, expr] = evaluateExpr (letContext c defs) expr
+slet _ _                = throw $ EvaluationException "let : Invalid number of arguments"
 
 letContext :: Context -> [Expression] -> Context
 letContext c (Seq [Atom key, value] : xs) = letContext (Map.insert key (evaluateExpr c value) c) xs
