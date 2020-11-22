@@ -3,6 +3,7 @@ module Evaluator
       evaluateRepl,
       evaluateDefines,
       Value (..),
+      Context,
     ) where
 
 import Text.Read (readMaybe)

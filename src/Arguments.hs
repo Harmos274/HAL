@@ -29,5 +29,5 @@ parseArgs ["--help"] = SOS
 parseArgs s          = parseArgs' $ reverse s
 
 parseArgs' :: [String] -> SourceCode
-parseArgs' ("-i":xs) = SourceCode interactive xs
-parseArgs' s         = SourceCode computed    s
+parseArgs' ("-i":xs) = SourceCode interactive $ reverse xs
+parseArgs' s         = SourceCode computed    $ reverse s

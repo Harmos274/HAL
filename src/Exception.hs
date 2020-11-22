@@ -1,9 +1,10 @@
 module Exception
     ( HExceptions (..),
-      exceptionHandler
+      exceptionHandler,
     ) where
 
 import Control.Exception (Exception)
+
 import Epitech.ReturnType (failure)
 
 data HExceptions = ArgumentException String
