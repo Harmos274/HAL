@@ -82,7 +82,7 @@ evaluateExpr c (Atom a)      = evaluateAtom c a
 evaluateAtom :: Context -> String -> Value
 evaluateAtom c s = Map.lookup s c
                 ?: ((Number <$> readMaybe s)
-                ?: String s)
+                ?: throw (EvaluationException (show s ++ " is not a variable")))
 
 evaluateSeq :: Context -> [Expression] -> Value
 evaluateSeq _ []        = Nil
@@ -137,7 +137,9 @@ builtins = [("+",      Function $ Builtin add),
             ("cond",   Function $ Spe cond),
             ("lambda", Function $ Spe lambda),
             ("let"   , Function $ Spe slet),
-            ("quote" , Function $ Spe quote)
+            ("quote" , Function $ Spe quote),
+            ("#t" ,    String "#t"),
+            ("#f" ,    String "#f")
            ]
 
 add :: [Value] -> Value
