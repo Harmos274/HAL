@@ -49,5 +49,8 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - tasty
+    - HUnit
+    - tasty-hunit
     - hal
     - containers
